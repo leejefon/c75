@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>first 75 — C programs, running in the browser</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>💾</text></svg>">
+</head>
+<body>
+
+<aside id="sidebar">
+  <header>
+    <h1>first 75</h1>
+    <p class="sub">C programs, 2008 · <span id="count"></span></p>
+    <input id="search" type="search" placeholder="Search programs…" autocomplete="off" spellcheck="false">
+    <div id="filters">
+      <button class="chip on" data-tag="">All</button>
+      <button class="chip" data-tag="Good">!!! Good</button>
+      <button class="chip" data-tag="Useful">!! Useful</button>
+      <button class="chip" data-tag="Special">! Special</button>
+    </div>
+  </header>
+  <ol id="list"></ol>
+</aside>
+
+<main>
+  <section id="code-pane">
+    <div class="bar">
+      <div class="titles">
+        <strong id="prog-title">Pick a program</strong>
+        <span id="prog-meta"></span>
+      </div>
+      <div class="actions">
+        <button id="run" disabled>▶ Run</button>
+        <button id="stop" disabled>■ Stop</button>
+      </div>
+    </div>
+    <div id="code-scroll"><pre id="code"><code></code></pre></div>
+  </section>
+
+  <div id="splitter" role="separator" aria-orientation="horizontal" tabindex="0"></div>
+
+  <section id="term-pane">
+    <div class="bar">
+      <div class="titles">
+        <strong id="term-title">Output</strong>
+        <span id="status"></span>
+      </div>
+      <div class="actions">
+        <button id="clear">Clear</button>
+      </div>
+    </div>
+    <div id="terminal"><pre class="screen"></pre></div>
+    <div id="hint"></div>
+  </section>
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

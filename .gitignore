@@ -1,0 +1,12 @@
+# Emscripten SDK — ~1.7 GB, install locally with build/setup.sh
+tools/emsdk/
+
+# The 2008 Windows builds. The .c sources next to them are the real archive;
+# these binaries can't run anywhere this project is used.
+*.exe
+*.o
+*.res
+
+# Dev-C++ project leftovers
+first75/Sliding Puzzle/Makefile.win
+first75/Sliding Puzzle/*.dev

@@ -1,0 +1,200 @@
+System Commands:
+
+explorer	----------	開啟檔案總管 (我的文件)
+
+notepad		----------	開啟記事本
+
+calc		----------	開啟計算機
+
+write		----------	開啟wordpad
+
+mspaint		----------	開啟小畫家
+
+dvdplay		----------	開啟DVD播放器 (Windows Media Player)
+
+taskmgr		----------	開啟工作管理員
+
+magnify		----------	開啟放大鏡
+
+osk		----------	開啟螢幕小鍵盤
+
+charmap		----------	啟動字元對應表
+
+narrator	----------	螢幕「講述人」
+
+mstsc		----------	遠端桌面連接
+
+dxdiag		----------	檢查DirectX資訊
+
+winver		----------	檢查Windows版本
+
+mem.exe		----------	檢查記憶體使用情況
+
+Nslookup	----------	IP位址偵測器
+
+regedit.exe	----------	註冊表
+
+eventvwr        ----------	事件檢視器
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gpedit.msc-----群組原則
+
+sndrec32-------錄音機
+
+logoff---------登出指令
+
+tsshutdn-------60秒倒計時關機指令
+
+lusrmgr.msc----本地機用戶和組
+
+services.msc---本機服務設定
+
+oobe/msoobe /a----檢查XP是否啟動
+
+cleanmgr-------磁碟垃圾整理
+
+net start messenger----開始信使服務
+
+compmgmt.msc---電腦管理
+
+net stop messenger-----停止信使服務
+
+conf-----------啟動
+
+netmeeting
+
+diskmgmt.msc---磁牒管理實用程序
+
+dfrg.msc-------磁碟重組工具
+
+chkdsk.exe-----Chkdsk磁牒檢查
+
+devmgmt.msc--- 裝置管理員
+
+drwtsn32------ 系統醫生
+
+rononce -p ----15秒關機 
+
+regedt32-------註冊表編輯器
+
+Msconfig.exe---系統配置實用程序
+
+rsop.msc-------群組原則結果集
+
+winchat--------XP自帶區域網路聊天
+
+progman--------程序管理器
+
+winmsd---------系統資訊
+
+perfmon.msc----電腦效能監測程序
+
+sfc /scannow-----掃瞄錯誤並復原
+
+eventvwr.msc------------事件檢視器
+
+secpol.msc----------------本機安全性設定
+
+rsop.msc------------------原則的結果集
+
+ntbackup----------------啟動制作備份還原嚮導
+
+wmimgmt.msc----開啟windows管理體系結構WMI)
+
+wupdmgr--------windows更新程序
+
+wscript--------windows指令碼宿主設定
+
+wiaacmgr-------掃瞄儀和照相機嚮導
+
+winchat--------XP原有的區域網路聊天
+
+mmc------------開啟控制台
+
+mobsync--------同步指令
+
+dfrg.msc-------磁碟重組程式
+
+dcomcnfg-------開啟系統元件服務
+
+ddeshare-------開啟DDE共享設定
+
+ntbackup-------系統制作備份和還原
+
+ntmsmgr.msc----移動存儲管理器
+
+ntmsoprq.msc---移動存儲管理員操作請求
+
+netstat -an----(TC)指令檢查連接
+
+syncapp--------新增一個公文包
+
+sysedit--------系統配置編輯器
+
+sigverif-------文件簽名驗證程序
+
+shrpubw--------新增共用資料夾
+
+secpol.msc-----本機安全原則
+
+syskey---------系統加密，一旦加密就不能解開，保護windows xp系統的雙重密碼
+
+Sndvol32-------音量控制程序
+
+sfc.exe--------系統檔案檢查器
+
+sfc /scannow---windows文件保護
+
+tourstart------xp簡介（安裝完成後出現的漫遊xp程序）
+
+eudcedit-------造字程序
+
+packager-------對像包裝程序
+
+regsvr32 /u *.dll----停止dll文件執行
+
+regsvr32 /u zipfldr.dll------取消ZIP支持
+
+cmd.exe--------CMD命令提示字元
+
+chkdsk.exe-----Chkdsk磁牒檢查
+
+certmgr.msc----證書管理實用程序
+
+cliconfg-------SQL SERVER 客戶端網路實用程序
+
+Clipbrd--------剪貼板檢視器
+
+netmeeting compmgmt.msc---電腦管理
+
+ciadv.msc------索引服務程序
+
+odbcad32-------ODBC資料來源管理器
+
+iexpress-------木馬元件服務工具，系統原有的
+
+fsmgmt.msc-----共用資料夾管理器
+
+utilman--------協助工具管理器
+
+sfc /scannow---windows文件保護
