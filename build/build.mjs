@@ -20,11 +20,13 @@ const BUILD = path.join(ROOT, "build");
 // legend for the bangs in the filenames.
 const TAGS = { "!": "Special", "!!": "Useful", "!!!": "Good" };
 
+// The leading number and the bang tag are both optional: most files are
+// "22 !! guess - SP-w4&5-7.c", but a bonus like "!!! Snake.c" carries the tag
+// with no number.
 /** "22 !! guess - SP-w4&5-7.c" -> { num, tag, title, ref } */
 function parseName(file) {
   const stem = file.replace(/\.c$/i, "");
-  const m = /^(\d+)\s+(!{1,3})?\s*(.*)$/.exec(stem);
-  if (!m) return { num: null, tag: null, title: stem, ref: null };
+  const m = /^(?:(\d+)\s+)?(!{1,3})?\s*(.*)$/.exec(stem);
 
   let rest = m[3].trim();
   let ref = null;
@@ -34,7 +36,12 @@ function parseName(file) {
     ref = rest.slice(dash + 3).trim();
     rest = rest.slice(0, dash).trim();
   }
-  return { num: Number(m[1]), tag: m[2] ? TAGS[m[2]] : null, title: rest, ref };
+  return {
+    num: m[1] ? Number(m[1]) : null,
+    tag: m[2] ? TAGS[m[2]] : null,
+    title: rest,
+    ref,
+  };
 }
 
 function slugify(s) {
@@ -49,8 +56,9 @@ async function collect() {
   const items = [];
 
   for (const f of (await fs.readdir(SRC)).sort()) {
-    // The three legend files are empty and are not programs.
-    if (!f.endsWith(".c") || f.startsWith("!")) continue;
+    // The three legend files ("! = Special.c" etc.) are empty and only
+    // document the bang tags; skip those but keep bang-prefixed programs.
+    if (!f.endsWith(".c") || /^!+ =/.test(f)) continue;
     items.push({ file: path.join(SRC, f), name: f, dir: SRC });
   }
 
