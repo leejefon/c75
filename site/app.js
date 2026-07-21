@@ -41,12 +41,43 @@ const PALETTE = [
 
 const term = new Terminal($("#terminal"));
 
+// Win32 Beep() rendered through Web Audio — a square wave, like the PC speaker
+// it originally drove. The worker blocks for the real duration; this just has
+// to sound for it. The AudioContext is created on the first Run (a user
+// gesture), which browsers require before audio may play.
+let audio = null;
+
+function playTone(freq, ms) {
+  if (!audio) return;
+  const now = audio.currentTime;
+  const osc = audio.createOscillator();
+  const gain = audio.createGain();
+  osc.type = "square";
+  osc.frequency.value = freq;
+  // A short fade at each end keeps the notes from clicking.
+  const dur = ms / 1000;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.12, now + 0.008);
+  gain.gain.setValueAtTime(0.12, now + Math.max(0.008, dur - 0.02));
+  gain.gain.linearRampToValueAtTime(0, now + dur);
+  osc.connect(gain).connect(audio.destination);
+  osc.start(now);
+  osc.stop(now + dur + 0.02);
+}
+
 let programs = [];
 let current = null;
 let worker = null;
 let sab = null;
 let ctl = null;
-let inbox = null;
+let lineBuf = null;
+let keyRing = null;
+
+// Matches the SharedArrayBuffer layout documented in worker.js.
+const HEADER = 32;
+const LINE_CAP = 4096;
+const KB_CAP = 256;
+const LINE_SIGNAL = 0, LINE_LEN = 1, KB_WRITE = 3;
 let filter = "";
 
 // --- program list ------------------------------------------------------
@@ -74,7 +105,7 @@ function renderList() {
 
           const num = document.createElement("span");
           num.className = "num";
-          num.textContent = p.num > 75 ? "★" : p.num;
+          num.textContent = p.extra || p.num > 75 ? "★" : p.num;
 
           const name = document.createElement("span");
           name.className = "name";
@@ -145,16 +176,21 @@ function setHint(html) {
 function run() {
   if (!current) return;
   stop();
+
+  // Run is a user gesture, so this is the moment audio is allowed to start.
+  if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+  audio.resume?.();
+
   term.reset();
   els.termTitle.textContent = current.title;
   setStatus("running…", "running");
   els.run.disabled = true;
   els.stop.disabled = false;
 
-  // 4 control ints + room for a generous pasted line.
-  sab = new SharedArrayBuffer(16 + 4096);
-  ctl = new Int32Array(sab, 0, 4);
-  inbox = new Uint8Array(sab, 16);
+  sab = new SharedArrayBuffer(HEADER + LINE_CAP + KB_CAP);
+  ctl = new Int32Array(sab, 0, 8);
+  lineBuf = new Uint8Array(sab, HEADER, LINE_CAP);
+  keyRing = new Uint8Array(sab, HEADER + LINE_CAP, KB_CAP);
 
   worker = new Worker("./worker.js");
   worker.onmessage = (e) => onWorker(e.data);
@@ -167,29 +203,61 @@ function run() {
   term.el.focus();
 }
 
+// A redraw-heavy program (Snake repaints every cell each frame) emits output
+// far faster than the DOM can repaint. Rendering on every message would back
+// the main thread up by seconds and starve keyboard input. Instead we absorb
+// the bytes immediately and repaint at most once per animation frame.
+let renderQueued = false;
+function scheduleRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => {
+    renderQueued = false;
+    term.render();
+  });
+}
+
 function onWorker(msg) {
   if (msg.type === "out") {
     term.write(msg.bytes);
-    term.render();
+    scheduleRender();
     return;
   }
 
+  // conio input: the program is reading keys directly. Stream each keystroke
+  // into the shared ring buffer so getch()/kbhit() see it.
+  if (msg.type === "raw-arm") {
+    term.settleEscape();
+    term.setInputMode("raw");
+    setHint(`Interactive — click the console and use your keyboard.`);
+    term.onKey = (bytes) => {
+      let w = Atomics.load(ctl, KB_WRITE);
+      for (const b of bytes) keyRing[w++ % KB_CAP] = b & 0xff;
+      Atomics.store(ctl, KB_WRITE, w);
+      Atomics.notify(ctl, KB_WRITE);
+    };
+    return;
+  }
+
+  // stdin input: the program is reading a line. Collect an editable line and
+  // hand it over on Enter.
   if (msg.type === "need-input") {
     term.settleEscape();
-    term.setInputMode(msg.mode);
-    setHint(
-      msg.mode === "raw"
-        ? `Waiting for a <b>single key</b> — click the console and press any key.`
-        : `Waiting for input — type a value and press <span class="key">Enter</span>.`
-    );
+    term.setInputMode("line");
+    setHint(`Waiting for input — type a value and press <span class="key">Enter</span>.`);
     term.onInput = (bytes) => {
-      const n = Math.min(bytes.length, inbox.length);
-      inbox.set(bytes.subarray(0, n));
-      Atomics.store(ctl, 1, n);
-      Atomics.store(ctl, 0, 1);
-      Atomics.notify(ctl, 0);
+      const n = Math.min(bytes.length, LINE_CAP);
+      lineBuf.set(bytes.subarray(0, n));
+      Atomics.store(ctl, LINE_LEN, n);
+      Atomics.store(ctl, LINE_SIGNAL, 1);
+      Atomics.notify(ctl, LINE_SIGNAL);
       setHint("Running…");
     };
+    return;
+  }
+
+  if (msg.type === "beep") {
+    playTone(msg.freq, msg.dur);
     return;
   }
 
@@ -209,6 +277,7 @@ function onWorker(msg) {
 
 function finish() {
   term.setInputMode(null);
+  term.onKey = null;
   worker?.terminate();
   worker = null;
   els.run.disabled = !current;
@@ -220,6 +289,7 @@ function stop() {
   worker.terminate();
   worker = null;
   term.setInputMode(null);
+  term.onKey = null;
   setStatus("stopped");
   setHint("Stopped.");
   els.run.disabled = !current;

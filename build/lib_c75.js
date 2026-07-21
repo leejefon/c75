@@ -11,4 +11,7 @@ addToLibrary({
   c75_sleep: function (ms) {
     C75.sleep(ms);
   },
+  c75_beep: function (freq, dur) {
+    C75.beep(freq, dur);
+  },
 });

@@ -233,17 +233,21 @@ export class Terminal {
 
   handleKey(e) {
     if (!this.inputMode) return;
-    if (e.metaKey || e.ctrlKey || e.altKey) return; // leave copy/paste alone
 
-    const key = e.key;
-    e.preventDefault();
-
+    // Raw mode streams every keystroke to the running program (getch/kbhit),
+    // which is how the interactive games are driven.
     if (this.inputMode === "raw") {
-      const code = key.length === 1 ? key.charCodeAt(0) : key === "Enter" ? 13 : null;
-      if (code === null) return;
-      this.submit(new Uint8Array([code]));
+      if (e.metaKey) return; // leave Cmd-based copy/paste alone
+      const bytes = rawKeyBytes(e);
+      if (!bytes) return;
+      e.preventDefault();
+      this.onKey?.(bytes);
       return;
     }
+
+    if (e.metaKey || e.ctrlKey || e.altKey) return; // leave copy/paste alone
+    const key = e.key;
+    e.preventDefault();
 
     if (key === "Enter") {
       const line = this.pending;
@@ -298,7 +302,8 @@ export class Terminal {
       let end = ch.length;
       while (end > 0 && ch[end - 1] === " " && at[end - 1] === DEFAULT_ATTR) end--;
 
-      const showCursor = this.inputMode && y === cursorRow;
+      // Only line input shows a caret; raw-mode games position their own.
+      const showCursor = this.inputMode === "line" && y === cursorRow;
       if (showCursor) end = Math.max(end, this.cx + 1);
 
       let line = "";
@@ -332,4 +337,34 @@ export class Terminal {
 
 function esc(s) {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+}
+
+// Windows' conio delivered an arrow key as two reads: a 0xE0 lead byte then a
+// scan code. Programs like Snake test the lead byte and then switch on the
+// scan code, so the same pair is sent here. Ctrl+letter becomes a control code
+// (Ctrl+A = 1) the way a console would, which Snake uses for faster/slower.
+const ARROWS = {
+  ArrowUp: [0xe0, 72],
+  ArrowDown: [0xe0, 80],
+  ArrowLeft: [0xe0, 75],
+  ArrowRight: [0xe0, 77],
+};
+
+function rawKeyBytes(e) {
+  if (ARROWS[e.key]) return ARROWS[e.key];
+  switch (e.key) {
+    case "Enter": return [13];
+    case "Escape": return [27];
+    case "Backspace": return [8];
+    case "Tab": return [9];
+  }
+  if (e.key.length === 1) {
+    if (e.ctrlKey) {
+      const u = e.key.toUpperCase();
+      if (u >= "A" && u <= "Z") return [u.charCodeAt(0) - 64];
+      return null;
+    }
+    return [e.key.charCodeAt(0) & 0xff];
+  }
+  return null;
 }

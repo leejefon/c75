@@ -54,12 +54,6 @@ async function collect() {
     items.push({ file: path.join(SRC, f), name: f, dir: SRC });
   }
 
-  // The final project lives in its own folder with its own data files.
-  const puzzle = path.join(SRC, "Sliding Puzzle");
-  for (const f of (await fs.readdir(puzzle)).filter((f) => f.endsWith(".c"))) {
-    items.push({ file: path.join(puzzle, f), name: f, dir: puzzle, extra: true });
-  }
-
   return items.map((it) => {
     const meta = parseName(it.name);
     return {
@@ -67,7 +61,7 @@ async function collect() {
       ...meta,
       // Files share numbers (63 v1.0/v2.0/v3.0), so the slug carries the name.
       id: slugify(it.name),
-      num: it.extra ? 76 : meta.num,
+      num: meta.num,
     };
   });
 }
@@ -95,6 +89,10 @@ const PATCHES = {
 
 const FLAGS = [
   "-O2",
+  // MinGW's char was signed. Programs that store a raw getch() in a char and
+  // compare it to a negative sentinel (Snake tests the arrow-key lead byte
+  // 0xE0 against -32) need the same, or the comparison never matches.
+  "-fsigned-char",
   "-I", BUILD,
   "-I", path.join(BUILD, "include"),
   "-include", path.join(BUILD, "c75shim.h"),
@@ -171,6 +169,8 @@ const workers = Array.from({ length: Math.max(2, os.cpus().length - 1) }, async 
         tag: prog.tag,
         ref: prog.ref,
         file: prog.name,
+        // Files with no leading number (Snake) are bonus entries, listed last.
+        extra: prog.num == null,
         interactive: NEEDS_INPUT.test(source),
         patched: Boolean(PATCHES[prog.name]),
         source: source.replace(/\r\n/g, "\n"),
@@ -183,11 +183,20 @@ const workers = Array.from({ length: Math.max(2, os.cpus().length - 1) }, async 
 });
 await Promise.all(workers);
 
-manifest.sort((a, b) => a.num - b.num || a.file.localeCompare(b.file));
+// Unnumbered bonus programs sort after everything numbered.
+const rank = (p) => (p.num == null ? Infinity : p.num);
+manifest.sort((a, b) => rank(a) - rank(b) || a.file.localeCompare(b.file));
 await fs.writeFile(
   path.join(ROOT, "site", "programs.json"),
   JSON.stringify(manifest, null, 1)
 );
+
+// Drop wasm from programs that no longer exist (e.g. the removed Sliding
+// Puzzle), so site/wasm always mirrors the current manifest.
+const keep = new Set(manifest.flatMap((p) => [`${p.id}.js`, `${p.id}.wasm`]));
+for (const f of await fs.readdir(OUT)) {
+  if (!keep.has(f)) await fs.rm(path.join(OUT, f));
+}
 
 console.log(`\n${manifest.length} programs built -> site/programs.json`);
 

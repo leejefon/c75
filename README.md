@@ -1,7 +1,8 @@
 # first 75
 
 The C programs I wrote learning the language in 2008, compiled to WebAssembly
-and running in the browser — including the interactive ones.
+and running in the browser — including the interactive ones, a melody that
+plays through Web Audio, and a real-time Snake game (a 2009 bonus, listed last).
 
 ```bash
 node serve.mjs      # → http://localhost:8075
@@ -16,16 +17,30 @@ Every `.c` file is compiled ahead of time to its own `.wasm` by `build/build.mjs
 The site is static — there is no compiler and no program execution on the
 server. `serve.mjs` only serves files.
 
-Each program runs on a Web Worker. `scanf()` and `getch()` need to *block*, so
-the worker parks on `Atomics.wait` against a `SharedArrayBuffer` until the page
-sends a keystroke. That requires the page to be cross-origin isolated, which is
-why `serve.mjs` sets `Cross-Origin-Opener-Policy` and
-`Cross-Origin-Embedder-Policy`. Opening `site/index.html` from the filesystem
-will load but will not accept input.
+Each program runs on a Web Worker, which lets its blocking calls actually
+block on `Atomics.wait` against a `SharedArrayBuffer` without freezing the UI
+that feeds them. Input arrives two ways:
+
+- **line** — `scanf`/`gets`. The page shows an editable, echoed line and hands
+  it over whole on Enter.
+- **raw** — conio's `getch`/`kbhit`. The page streams every keystroke into a
+  ring buffer as it happens, so `kbhit()` can poll without blocking and a
+  real-time game (Snake) stays playable. Arrow keys are delivered as the same
+  two-byte sequence Windows' conio produced (`0xE0` then a scan code).
+
+That shared memory requires the page to be cross-origin isolated, which is why
+`serve.mjs` sets `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`.
+Opening `site/index.html` from the filesystem will load but will not accept
+input.
 
 The console is a real screen buffer rather than an append-only log, because
 these programs clear and redraw in place. It decodes output as code page 437,
-so the box-drawing art and arrow glyphs land as written.
+so the box-drawing art and arrow glyphs land as written. Redraw-heavy programs
+repaint every cell each frame, so output is coalesced to one render per
+animation frame — the display keeps up and keystrokes are never starved.
+
+`Beep()` is wired to the Web Audio API, so program 54 plays its melody as
+square-wave tones rather than a terminal bell.
 
 ## Making them build
 
@@ -40,10 +55,16 @@ included into every file and supplies what the browser lacks:
 | `system("mode con cols=… lines=…")` | resizes the console |
 | `system("title …")` | sets the pane title |
 | `SetConsoleTextAttribute` | Windows colour attribute → ANSI |
+| `SetConsoleCursorPosition` (gotoXY) | ANSI cursor move |
 | `MessageBox` | drawn inline in the console |
+| `Beep(freq, dur)` | a Web Audio square-wave tone |
 | `sleep(1200)` | milliseconds, as MinGW meant it — not POSIX seconds |
 | `fopen("text\\record.dat")` | backslash paths normalised |
 | `gets()` | removed from C11; reimplemented |
+
+Everything is compiled with `-fsigned-char`, because MinGW's `char` was signed
+and Snake tests an arrow key's `0xE0` lead byte against `-32`; an unsigned
+`char` would never match and the arrows would be silently dropped.
 
 The data files in `first75/text/` are embedded into the programs that read
 them, so file I/O works. Writes land in an in-memory filesystem and last for

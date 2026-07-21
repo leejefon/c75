@@ -53,10 +53,7 @@ static inline void Sleep(DWORD ms) { c75_sleep((int)ms); }
 
 static inline BOOL Beep(DWORD freq, DWORD dur)
 {
-    (void)freq;
-    fputc('\a', stdout);
-    fflush(stdout);
-    c75_sleep((int)dur);
+    c75_beep((int)freq, (int)dur);
     return TRUE;
 }
 

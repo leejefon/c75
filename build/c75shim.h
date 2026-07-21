@@ -31,6 +31,10 @@ extern int c75_getch(void);
 extern int c75_kbhit(void);
 extern void c75_sleep(int ms);
 
+/* Plays a tone at freq Hz for dur ms and blocks until it finishes, the way
+   Win32 Beep() does. Used by program 54 to play a melody. */
+extern void c75_beep(int freq, int dur);
+
 /* --- implemented in c75shim.c ----------------------------------------- */
 
 const char *c75_fixpath(const char *p);
